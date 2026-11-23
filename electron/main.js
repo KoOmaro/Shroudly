@@ -30,6 +30,7 @@ const Snowflake = require('./snowflake');
 const WhatsNew = require('./whats-new');
 const HelperServer = require('./helper-server');
 const DataDir = require('./data-dir');
+const { WriteGuard, ensureTmp } = require('./write-guard');
 const SystemHosts = require('./system-hosts');
 const NationalNet = require('./national-net');
 const AdvancedMode = require('./advanced-mode');
@@ -314,6 +315,9 @@ function reportOffered() {
 }
 // reg.exe that Windows will not start: said once, in the log (win-reg.js).
 WinReg.setLog(addLog);
+// PowerShell that never answers here (an antivirus blocking its command
+// line) is no longer started for every question (ps-host.js): said once.
+require('./ps-host').setOnRest(() => addLog('warning', 'PowerShell does not answer on this computer (a security program may be blocking it), so Shroudly stops starting it for a while; what it is asked for (which Roblox program runs since when, whether a game is full-screen) goes without until it answers again'));
 
 function isAutoStartLaunch() {
   if (process.argv.includes(AUTOSTART_ARG)) return true;
@@ -418,6 +422,11 @@ const securityTold = new Set();
 // Advanced mode was blocked this session: it is not brought back by itself
 // (after a game, at the next Start) against the blocker.
 let advancedBlocked = false;
+// A computer that refuses Shroudly's new files (write-guard.js): told once,
+// and Advanced mode is not tried again by itself this session.
+let writeGuard = null;
+// The same failure of Advanced mode said once a minute, not at every try.
+let advancedFailSaid = { msg: '', at: 0 };
 function securityBlocked(info, { quiet = false } = {}) {
   if (!info || !info.part) return;
   addLog('error', SecurityBlock.logLine(info));
@@ -1533,7 +1542,11 @@ app.whenReady().then(async () => {
   }
   // Settings that cannot be written (a full disk, a folder not writable):
   // kept for this run instead of ending it (settings-file.js), said once.
-  const unsaved = (e) => addLog('warning', `Settings cannot be saved (${(e && (e.code || e.message)) || 'unknown'}); changes last until Shroudly closes`);
+  // The system's temporary folder, made again if a cleaning program deleted
+  // it; and the folders Shroudly writes in, looked at when a write fails.
+  ensureTmp();
+  writeGuard = new WriteGuard({ dirs: [app.getPath('userData')], log: addLog });
+  const unsaved = (e) => { addLog('warning', `Settings cannot be saved (${(e && (e.code || e.message)) || 'unknown'}); changes last until Shroudly closes`); try { writeGuard.note(e); } catch {} };
   if (settingsOpened.unsaved) unsaved(settingsOpened.unsaved);
   else settingsOpened.onUnsaved = unsaved;
   // A data folder chosen earlier that cannot be used this run (data-dir.js).
@@ -1828,6 +1841,13 @@ app.whenReady().then(async () => {
     }),
     // A full-screen game or video while protection is on.
     fullScreen: async () => !!(engine && engine.isActive()) && userBusy.fullScreen(),
+    // A game going on, with protection on or off: the Roblox player open, or
+    // any full-screen program in front. No update is downloaded by itself
+    // meanwhile (it would take the line the game needs).
+    playing: async () => {
+      try { const p = await RobloxApp.pids(); if (p && p.length > 0) return true; } catch {}
+      return userBusy.fullScreen();
+    },
     // Installing quits the app: stop the engine first so the system proxy is
     // put back, exactly as on a normal quit.
     beforeInstall: async () => {
@@ -2834,12 +2854,36 @@ function applyAppMode(on) {
   return run;
 }
 
+/* The setting could not be put in place because Windows did not answer (a
+ * PC still starting up, an antivirus holding its tools back: app-env.js
+ * regKey): tried again by itself, a few times, further and further apart.
+ * It used to stay off for the whole session, with Roblox open and no way to
+ * the internet. Nothing is tried once the mode is off or on. */
+const APP_MODE_RETRY_MS = [8000, 30000, 90000, 300000];
+const appModeRetry = { timer: null, n: 0 };
+function appModeRetryLater() {
+  if (appModeRetry.timer || appModeRetry.n >= APP_MODE_RETRY_MS.length) return false;
+  const wait = APP_MODE_RETRY_MS[appModeRetry.n++];
+  appModeRetry.timer = setTimeout(() => {
+    appModeRetry.timer = null;
+    if (store.get('appMode') === true && appState.failed && appModeSupported()) applyAppMode(true).catch(() => {});
+  }, wait);
+  if (appModeRetry.timer.unref) appModeRetry.timer.unref();
+  return true;
+}
+function appModeRetryForget() {
+  clearTimeout(appModeRetry.timer);
+  appModeRetry.timer = null;
+  appModeRetry.n = 0;
+}
+
 async function applyAppModeNow(on) {
   if (!appModeSupported()) return { success: false, code: 'unsupported' };
   appState.failed = false;
   if (!on) {
     try { appEnv.clearSync(); } catch {}
     tellAppUsers();
+    appModeRetryForget();
     if (flatpakEnv) { try { await flatpakEnv.clear(); } catch {} }
     appProxy.stop();
     store.set('appMode', false);
@@ -2891,12 +2935,16 @@ async function applyAppModeNow(on) {
     return { success: true };
   }
   try { r = appEnv.applySync(AppProxy.proxyUrl(port)); setAt = Date.now(); } catch (e) {
-    addLog('error', `Games and apps: ${e.message}`);
     appProxy.stop();
     appState.failed = true;
+    // Windows did not answer: not for good, so it is tried again by itself.
+    const again = e && e.code === 'EAGAIN' && store.get('appMode') === true && appModeRetryLater();
+    if (again) addLog('warning', `Games and apps: ${e.message}; trying again shortly`);
+    else addLog('error', `Games and apps: ${e.message}`);
     sendAppState();
     return { success: false, code: 'edit_failed' };
   }
+  appModeRetryForget();
   if (r === 'foreign') {
     // Somebody else's proxy for programs (HTTPS_PROXY): never replaced.
     appProxy.stop();
@@ -3392,7 +3440,14 @@ async function startAdvanced() {
     // its own line (securityBlocked).
     const blocked = (e.code === 'security_blocked' || e.code === 'files_missing') && e.info;
     if (blocked) securityBlocked(e.info);
-    else addLog('error', `Advanced mode failed: ${e.message}`);
+    else if (e.message !== advancedFailSaid.msg || Date.now() - advancedFailSaid.at > 60000) {
+      addLog('error', `Advanced mode failed: ${e.message}`);
+      advancedFailSaid = { msg: e.message, at: Date.now() };
+    }
+    // Its working folder could not be made: the temporary folder made again
+    // (a cleaning program deleted it), or new files refused on this computer,
+    // said once, and not asked for again by itself this session.
+    if (!blocked && writeGuard && writeGuard.note(e)) advancedBlocked = true;
     // Windows 7 without the SHA-2 update: it fails the same way until the
     // update is in; not asked for again by itself this session.
     if (e.code === 'needs_sha2') advancedBlocked = true;
@@ -3684,7 +3739,7 @@ function setOwnServer(value) {
     addLog('info', 'Your own server: off; sites go straight again');
   } else {
     const p = OwnServer.parseLink(value);
-    if (!p.ok) return { success: false, error: p.error };
+    if (!p.ok) return { success: false, error: p.error, method: p.method, what: p.what };
     const link = String(value).trim();
     if (link === was) return { success: true };
     store.set('ownServer', link);

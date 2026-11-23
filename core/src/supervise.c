@@ -28,11 +28,17 @@ static long g_esc_off = 0;
 static char g_standby_path[1100];
 static sup_teardown_fn g_pause = NULL, g_resume = NULL;
 static int g_in_standby = 0;
+static char g_ctl_base[1024];
+static int g_ctl_keep = 0;
 
 int sup_redirect_output(const char *status_file) {
 #ifdef _WIN32
   if (!freopen_utf8(status_file, "w", stdout)) return -1;
-  if (_dup2(_fileno(stdout), _fileno(stderr)) != 0) return -1;
+  /* stderr into the same file. One that is not open at all (no console and
+   * no streams handed over; main.c opens those on NUL) cannot be pointed
+   * anywhere: said then on stdout alone rather than not starting. */
+  if (_fileno(stdout) < 0) return -1;
+  if (_fileno(stderr) >= 0 && _dup2(_fileno(stdout), _fileno(stderr)) != 0) return -1;
 #else
   /* The engine runs as root but the path comes from the unprivileged app:
    * never follow a symlink planted there. */
@@ -68,6 +74,12 @@ static int parent_alive(long pid) {
 void sup_set_escalate(sup_lines_fn fn) { g_esc_fn = fn; }
 
 void sup_set_standby(sup_teardown_fn pause, sup_teardown_fn resume) { g_pause = pause; g_resume = resume; }
+
+void sup_set_control(const char *base, int keep) {
+  g_ctl_base[0] = '\0';
+  if (base && base[0]) snprintf(g_ctl_base, sizeof(g_ctl_base), "%s", base);
+  g_ctl_keep = keep ? 1 : 0;
+}
 
 /* F.standby there: the hook let go; gone: taken again. */
 static void standby_poll(void) {
@@ -120,8 +132,10 @@ static void *watchdog(void *arg) {
   }
   if (g_teardown) g_teardown();
   if (g_report) g_report();
-  if (g_stop_path[0]) remove_utf8(g_stop_path);
-  if (g_standby_path[0]) remove_utf8(g_standby_path);
+  if (!g_ctl_keep) {
+    if (g_stop_path[0]) remove_utf8(g_stop_path);
+    if (g_standby_path[0]) remove_utf8(g_standby_path);
+  }
   printf("{\"type\":\"stopped\"}\n");
   fflush(stdout);
 #ifdef _WIN32
@@ -145,10 +159,11 @@ int sup_start(const char *status_file, long parent_pid, sup_teardown_fn teardown
   g_standby_path[0] = '\0';
   g_in_standby = 0;
   g_esc_off = 0;
-  if (status_file && status_file[0]) {
-    snprintf(g_stop_path, sizeof(g_stop_path), "%s.stop", status_file);
-    snprintf(g_esc_path, sizeof(g_esc_path), "%s.escalate", status_file);
-    snprintf(g_standby_path, sizeof(g_standby_path), "%s.standby", status_file);
+  const char *base = g_ctl_base[0] ? g_ctl_base : status_file;
+  if (base && base[0]) {
+    snprintf(g_stop_path, sizeof(g_stop_path), "%s.stop", base);
+    snprintf(g_esc_path, sizeof(g_esc_path), "%s.escalate", base);
+    snprintf(g_standby_path, sizeof(g_standby_path), "%s.standby", base);
   }
 #ifndef _WIN32
   struct sigaction sa;

@@ -220,11 +220,12 @@
     <string name="openSourceDesc">Shroudly is free and open source under the MIT license: anyone can read, audit and build its code.</string>
     <string name="openSourceTitle">Open source</string>
     <string name="ownServer">Your own server</string>
-    <string name="ownServerDesc">Every site goes through a server you name: paste its SOCKS5, HTTP or Shadowsocks link. In a shutdown, a server inside the country that still reaches the world is a way out. That server sees which sites you open: use only one you trust.</string>
+    <string name="ownServerDesc">Every site goes through a server you name: paste its SOCKS5, HTTP, Shadowsocks, VLESS or Trojan link. In a shutdown, a server inside the country that still reaches the world is a way out. That server sees which sites you open: use only one you trust.</string>
     <string name="ownServerDown">Your own server is not working</string>
     <string name="ownServerDownBody">{server}: {why}. Sites do not open until it works. To stop using it: {path}.</string>
-    <string name="ownServerErrFormat">Not a link Shroudly can use. It looks like socks5://1.2.3.4:1080, http://user:pass@host:3128 or ss://…</string>
+    <string name="ownServerErrFormat">Not a link Shroudly can use. It looks like socks5://1.2.3.4:1080, http://user:pass@host:3128, ss://…, vless://… or trojan://…</string>
     <string name="ownServerErrMethod">This Shadowsocks method ({method}) is not supported; use chacha20-ietf-poly1305, aes-256-gcm or aes-128-gcm.</string>
+    <string name="ownServerErrUnsupported">This kind of link is not supported yet ({what}). Shroudly takes VLESS and Trojan over TCP, a WebSocket or HTTPUpgrade, with TLS or without.</string>
     <string name="ownServerErrUser">A user name cannot contain “:” or “@”.</string>
     <string name="ownServerExit">Through your own server. Sites see: {ip}</string>
     <string name="ownServerFails">Did not work: {why}. Not in use; check the link, or use it anyway.</string>
@@ -233,6 +234,7 @@
     <string name="ownServerOk">Works: a site opened through it in {ms} ms. In use.</string>
     <string name="ownServerWhyAsks">it asks for a user name and password</string>
     <string name="ownServerWhyAuth">it refused the user name or password</string>
+    <string name="ownServerWhyCert">its certificate is not valid for its name</string>
     <string name="ownServerWhyLocal">its address belongs to a home or office network, so it works only on that same network; from elsewhere, the router of the person sharing must forward its port to the internet</string>
     <string name="ownServerWhyNoAnswer">it does not answer</string>
     <string name="ownServerWhyProtocol">it does not speak the protocol chosen</string>
@@ -339,7 +341,7 @@
     <string name="upload">Upload</string>
     <string name="uptime">Uptime</string>
     <string name="versionLabel">Version {version}</string>
-    <string name="whatsNewAndroid">A site the last way out (Tor) cannot reach no longer waits on it: after two misses it goes the usual way for ten minutes (Roblox Studio).\nApps with their own protocol that no technique opens (Telegram in Jordan) now go through the last way out (Tor), where it is allowed.\nBlocked sites open faster: a new one starts with what already opened other blocked sites on your network, and the names of one service (YouTube, Instagram, Discord…) share what one of them finds.\nA technique that keeps working is no longer checked again on the first connection after a restart.\nNew techniques: three fixed choices in Settings (several TLS records, small random pieces, an urgent byte with a record split), three more in Auto, and Host header rewrites for plain HTTP.\nAn update download that timed out is tried again, then directly.</string>
+    <string name="whatsNewAndroid">“Your own server” now takes VLESS and Trojan links (vless://, trojan://) over TCP, a WebSocket or HTTPUpgrade, with TLS or without. REALITY, gRPC and XHTTP are not supported yet.\nA site the last way out (Tor) cannot reach no longer waits on it: after two misses it goes the usual way for ten minutes (Roblox Studio).\nApps with their own protocol that no technique opens (Telegram in Jordan) now go through the last way out (Tor), where it is allowed.\nBlocked sites open faster: a new one starts with what already opened other blocked sites on your network, and the names of one service (YouTube, Instagram, Discord…) share what one of them finds.\nA technique that keeps working is no longer checked again on the first connection after a restart.\nNew techniques: three fixed choices in Settings (several TLS records, small random pieces, an urgent byte with a record split), three more in Auto, and Host header rewrites for plain HTTP.</string>
     <string name="whatsNewOk">Got it</string>
     <string name="whatsNewTitle">What\'s new in {version}</string>
 </resources>

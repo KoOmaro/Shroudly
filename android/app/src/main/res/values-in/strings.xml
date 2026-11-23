@@ -220,11 +220,12 @@
     <string name="openSourceDesc">Shroudly gratis dan bersumber terbuka di bawah lisensi MIT: siapa pun dapat membaca, memeriksa, dan membangun kodenya.</string>
     <string name="openSourceTitle">Sumber terbuka</string>
     <string name="ownServer">Server sendiri</string>
-    <string name="ownServerDesc">Setiap situs melewati server yang Anda tentukan: tempel tautan SOCKS5, HTTP, atau Shadowsocks-nya. Saat internet diputus, server di dalam negeri yang masih terhubung ke dunia adalah jalan keluar. Server itu melihat situs apa saja yang Anda buka: gunakan hanya server yang Anda percayai.</string>
+    <string name="ownServerDesc">Setiap situs melewati server yang Anda tentukan: tempel tautan SOCKS5, HTTP, Shadowsocks, VLESS, atau Trojan-nya. Saat internet diputus, server di dalam negeri yang masih terhubung ke dunia adalah jalan keluar. Server itu melihat situs apa saja yang Anda buka: gunakan hanya server yang Anda percayai.</string>
     <string name="ownServerDown">Server sendiri Anda tidak berfungsi</string>
     <string name="ownServerDownBody">{server}: {why}. Situs tidak terbuka sampai server ini berfungsi. Untuk berhenti memakainya: {path}.</string>
-    <string name="ownServerErrFormat">Ini bukan tautan yang bisa dipakai Shroudly. Bentuknya seperti: socks5://1.2.3.4:1080, http://user:pass@host:3128, atau ss://…</string>
+    <string name="ownServerErrFormat">Ini bukan tautan yang bisa dipakai Shroudly. Bentuknya seperti: socks5://1.2.3.4:1080, http://user:pass@host:3128, ss://…, vless://…, atau trojan://…</string>
     <string name="ownServerErrMethod">Metode Shadowsocks ini ({method}) tidak didukung; gunakan chacha20-ietf-poly1305, aes-256-gcm, atau aes-128-gcm.</string>
+    <string name="ownServerErrUnsupported">Jenis tautan ini belum didukung ({what}). Shroudly menerima VLESS dan Trojan melalui TCP, WebSocket, atau HTTPUpgrade, dengan atau tanpa TLS.</string>
     <string name="ownServerErrUser">Nama pengguna tidak boleh berisi “:” atau “@”.</string>
     <string name="ownServerExit">Lewat server sendiri. Situs melihat: {ip}</string>
     <string name="ownServerFails">Tidak berhasil: {why}. Tidak dipakai; periksa tautannya, atau tetap gunakan.</string>
@@ -233,6 +234,7 @@
     <string name="ownServerOk">Berfungsi: sebuah situs terbuka lewat server ini dalam {ms} md. Dipakai.</string>
     <string name="ownServerWhyAsks">server meminta nama pengguna dan kata sandi</string>
     <string name="ownServerWhyAuth">server menolak nama pengguna atau kata sandi</string>
+    <string name="ownServerWhyCert">sertifikatnya tidak sah untuk namanya</string>
     <string name="ownServerWhyLocal">alamatnya milik jaringan rumah atau kantor, jadi hanya bekerja di jaringan itu; dari tempat lain, router orang yang berbagi harus meneruskan port-nya ke internet</string>
     <string name="ownServerWhyNoAnswer">server tidak menjawab</string>
     <string name="ownServerWhyProtocol">server tidak memakai protokol yang dipilih</string>
@@ -339,7 +341,7 @@
     <string name="upload">Unggah</string>
     <string name="uptime">Waktu aktif</string>
     <string name="versionLabel">Versi {version}</string>
-    <string name="whatsNewAndroid">Situs yang tidak terjangkau jalan terakhir (Tor) tidak lagi menunggunya: setelah dua kegagalan, ia lewat jalur biasa selama sepuluh menit (Roblox Studio).\nAplikasi dengan protokolnya sendiri yang tidak terbuka oleh teknik apa pun (Telegram di Yordania) kini lewat jalan terakhir (Tor), jika diizinkan.\nSitus yang diblokir terbuka lebih cepat: situs baru dimulai dengan cara yang sudah membuka situs terblokir lain di jaringan Anda, dan nama-nama satu layanan (YouTube, Instagram, Discord…) berbagi apa yang ditemukan salah satunya.\nTeknik yang terus berhasil tidak lagi diperiksa ulang pada koneksi pertama setelah mulai ulang.\nTeknik baru: tiga pilihan tetap di Setelan (beberapa rekaman TLS, potongan kecil acak, byte mendesak + pemisahan rekaman), tiga lagi di Otomatis, dan penulisan ulang header Host untuk HTTP biasa.\nUnduhan pembaruan yang kehabisan waktu dicoba lagi, lalu langsung.</string>
+    <string name="whatsNewAndroid">“Server sendiri” kini menerima tautan VLESS dan Trojan (vless://, trojan://) melalui TCP, WebSocket, atau HTTPUpgrade, dengan atau tanpa TLS. REALITY, gRPC, dan XHTTP belum didukung.\nSitus yang tidak terjangkau jalan terakhir (Tor) tidak lagi menunggunya: setelah dua kegagalan, ia lewat jalur biasa selama sepuluh menit (Roblox Studio).\nAplikasi dengan protokolnya sendiri yang tidak terbuka oleh teknik apa pun (Telegram di Yordania) kini lewat jalan terakhir (Tor), jika diizinkan.\nSitus yang diblokir terbuka lebih cepat: situs baru dimulai dengan cara yang sudah membuka situs terblokir lain di jaringan Anda, dan nama-nama satu layanan (YouTube, Instagram, Discord…) berbagi apa yang ditemukan salah satunya.\nTeknik yang terus berhasil tidak lagi diperiksa ulang pada koneksi pertama setelah mulai ulang.\nTeknik baru: tiga pilihan tetap di Setelan (beberapa rekaman TLS, potongan kecil acak, byte mendesak + pemisahan rekaman), tiga lagi di Otomatis, dan penulisan ulang header Host untuk HTTP biasa.</string>
     <string name="whatsNewOk">Mengerti</string>
     <string name="whatsNewTitle">Yang baru di {version}</string>
 </resources>

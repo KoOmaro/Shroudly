@@ -114,7 +114,10 @@
     ${If} $1 == $0
       DeleteRegValue HKCU "${_KEY}" "HTTPS_PROXY"
       ReadRegStr $1 HKCU "${_KEY}" "NO_PROXY"
-      ${If} $1 == "localhost,127.0.0.1,::1,.local,.localhost,.lan,.internal,.home.arpa,.home,.fritz.box,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,169.254.0.0/16,100.64.0.0/10,fc00::/7,fe80::/10"
+      ; Ours: the value since 2.6.88, or the one up to 2.6.87 (with two IPv6
+      ; ranges at its end, issue #96).
+      ${If} $1 == "localhost,127.0.0.1,::1,.local,.localhost,.lan,.internal,.home.arpa,.home,.fritz.box,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,169.254.0.0/16,100.64.0.0/10"
+      ${OrIf} $1 == "localhost,127.0.0.1,::1,.local,.localhost,.lan,.internal,.home.arpa,.home,.fritz.box,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,169.254.0.0/16,100.64.0.0/10,fc00::/7,fe80::/10"
         DeleteRegValue HKCU "${_KEY}" "NO_PROXY"
       ${EndIf}
     ${EndIf}
@@ -489,6 +492,47 @@ Bu Shroudly Windows 10 ve 11 içindir. Windows 7 ve 8 için olanı şimdi indirm
   ${EndIf}
 !macroend
 
+; Advanced mode's kept permission (core/src/advtask.h): a scheduled task
+; named after the user, and copies of the engine in
+; Common Files\Shroudly\advanced. This uninstaller may not be elevated, so
+; the task is asked to remove itself and its files: the request goes into
+; the user's folder and the task is started (it runs elevated). Where there
+; is no such task nothing is done, and nothing waits.
+!macro shroudlyAdvancedTaskCleanup
+  ReadEnvStr $1 LOCALAPPDATA
+  ReadEnvStr $2 USERNAME
+  ${If} $1 != ""
+  ${AndIf} $2 != ""
+    nsExec::Exec `"$SYSDIR\schtasks.exe" /Query /TN "Shroudly Advanced mode ($2)"`
+    Pop $0
+    ${If} $0 == 0
+      CreateDirectory "$1\Shroudly\advanced"
+      ClearErrors
+      FileOpen $3 "$1\Shroudly\advanced\request" w
+      ${IfNot} ${Errors}
+        FileWrite $3 "shroudly-advanced 1$\nuninstall$\n"
+        FileClose $3
+        nsExec::Exec `"$SYSDIR\schtasks.exe" /Run /TN "Shroudly Advanced mode ($2)"`
+        Pop $0
+        ; Until the task is gone, six seconds at most.
+        StrCpy $4 0
+        ${DoWhile} $4 < 12
+          Sleep 500
+          nsExec::Exec `"$SYSDIR\schtasks.exe" /Query /TN "Shroudly Advanced mode ($2)"`
+          Pop $0
+          ${If} $0 != 0
+            ${ExitDo}
+          ${EndIf}
+          IntOp $4 $4 + 1
+        ${Loop}
+      ${EndIf}
+      ClearErrors
+    ${EndIf}
+    RMDir /r "$1\Shroudly\advanced"
+    RMDir "$1\Shroudly"
+  ${EndIf}
+!macroend
+
 !macro customUnInstall
   !insertmacro shroudlyResetProxy
   !insertmacro shroudlyLinkCleanup "u"
@@ -497,6 +541,7 @@ Bu Shroudly Windows 10 ve 11 içindir. Windows 7 ve 8 için olanı şimdi indirm
   ${ifNot} ${isUpdated}
     !insertmacro shroudlyDiscordCleanup
     !insertmacro shroudlyLoopbackCleanup
+    !insertmacro shroudlyAdvancedTaskCleanup
     DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "Shroudly"
     DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "electron.app.Shroudly"
     DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "me.codeshare.shroudly"
